@@ -5,10 +5,7 @@
 
 ;; (def ^:dynamic *pprint-writer* *out*)
 
-(defn- use-method
-  "Installs a function as a new method of multimethod associated with dispatch-value. "
-  [multifn dispatch-val func]
-  (. multifn addMethod dispatch-val func))
+(def use-method #'pprint/use-method)
 
 (defn- color-pprint [color obj]
   (pr (clansi/style obj color)))
