@@ -24,10 +24,46 @@
                                                              (recur (next aseq)))))))
 
 
+;; (defn- pprint-map [amap]
+;;   (try
+;;     (#'pprint/pprint-map (into (sorted-map) amap))
+;;     (catch ClassCastException e (#'pprint/pprint-map amap))))
+
+(defn- scalar? [x]
+  (or (number? x) (string? x) (nil? x)))
+
+(defn- complex? [x]
+  (not (scalar? x)))
+
+(use 'alex-and-georges.debug-repl)
+
 (defn- pprint-map [amap]
-  (try
-    (#'pprint/pprint-map (into (sorted-map) amap))
-    (catch ClassCastException e (#'pprint/pprint-map amap))))
+  ;; (debug-repl)
+  (let [color (first (shuffle [:red :blue :cyan]))]
+  (pprint-logical-block :prefix "{" :suffix "}" ;;:per-line-prefix "!!!"
+    (print-length-loop [aseq (seq amap)]
+    ;; (loop [aseq (seq amap)]
+      (when aseq
+	      ;; (pprint-logical-block 
+            (write-out (ffirst aseq))
+            (.write ^java.io.Writer *out* " ")
+          ;; (push-thread-bindings {
+          ;;                        #'clojure.pprint/*current-level*
+          ;;                           (dec (var-get #'clojure.pprint/*current-level*))
+          ;;                           #'clojure.pprint/*current-length* 0})
+            ;; (when complex? (second (first aseq))
+            ;;   (pprint-newline :linear))
+            (write-out (fnext (first aseq)))
+          ;; )
+        (when (next aseq)
+          (.write ^java.io.Writer *out* ", ")
+          (when (and (complex? (next aseq)) (complex? (fnext aseq)) (complex? (second (fnext aseq))))
+            (pprint-newline :linear))
+          (recur (next aseq)))
+        
+        ))
+                        )
+    ))
 
 (defmulti color-dispatch class)
 
