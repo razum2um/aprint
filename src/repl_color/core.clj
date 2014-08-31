@@ -1,6 +1,7 @@
 (ns repl-color.core
   (:require [clojure.pprint :as pprint :refer [pprint-logical-block write-out pprint-newline print-length-loop]]
-            [clansi.core :as clansi])
+            [clansi.core :as clansi]
+            [clojure.string :as s])
   (:import [java.io Writer]))
 
 (def use-method #'pprint/use-method)
@@ -107,11 +108,95 @@
         (finally
          (. clojure.lang.Var (popThreadBindings)))))))
 
+;; debug
+
+(defmulti ^{:private true} tok :type-tag)
+(defmethod tok :nl-t [token]
+  (:type token))
+(defmethod tok :buffer-blob [token]
+  (str \" (:data token) (:trailing-white-space token) \"))
+(defmethod tok :default [token]
+  (:type-tag token))
+(defn- toks [toks] (map tok toks))
+
+(defn- prerr [& args]
+  "Println to *err*"
+  (binding [*out* *err*]
+    (apply println args)))
+
+(defmacro ^{:private true} prlabel [prefix arg & more-args]
+  "Print args to *err* in name = value format"
+  `(prerr ~@(cons (list 'quote prefix) (mapcat #(list (list 'quote %) "=" %) 
+                                                  (cons arg (seq more-args))))))
+;; end debug
+
 (defstruct ^{:private true} logical-block
            :parent :section :start-col :indent
            :done-nl :intra-block-nl
            :prefix :per-line-prefix :suffix
            :logical-block-callback)
+
+(defn- emit-nl [^Writer this nl]
+  (.write (getf :base) (#'pprint/pp-newline))
+  (dosync (setf :trailing-white-space nil))
+  (let [lb (:logical-block nl)
+        ^String prefix (:per-line-prefix lb)] 
+    (if prefix 
+      (.write (getf :base) prefix))
+    (let [^String istr (apply str (repeat (- @(:indent lb) (count prefix))
+					  \space))] 
+      (.write (getf :base) istr))
+    (#'pprint/update-nl-state lb)))
+
+(defn- write-token-string [this tokens]
+  (let [[a b] (#'pprint/split-at-newline tokens)]
+   ;; (prlabel wts (toks a) (toks b))
+    (if a (#'pprint/write-tokens this a false))
+    (if b
+      (let [[section remainder] (#'pprint/get-section b)
+            newl (first b)]
+;;         (prlabel wts (toks section)) (prlabel wts (:type newl)) (prlabel wts (toks remainder)) 
+        (let [do-nl (emit-nl newl this section (#'pprint/get-sub-section b))
+              result (if do-nl 
+                       (do
+;;                          (prlabel emit-nl (:type newl))
+                         (emit-nl this newl)
+                         (next b))
+                       b)
+              long-section (not (#'pprint/tokens-fit? this result))
+              result (if long-section
+                       (let [rem2 (write-token-string this section)]
+;;;                              (prlabel recurse (toks rem2))
+                         (if (= rem2 section)
+                           (do ; If that didn't produce any output, it has no nls
+                                        ; so we'll force it
+                             (#'pprint/write-tokens this section false)
+                             remainder)
+                           (into [] (concat rem2 remainder))))
+                       result)
+;;              ff (prlabel wts (toks result))
+              ] 
+          result)))))
+
+(defn- write-line [^Writer this]
+  (dosync
+   (loop [buffer (getf :buffer)]
+;;     (prlabel wl1 (toks buffer))
+     (setf :buffer (into [] buffer))
+     (if (not (#'pprint/tokens-fit? this buffer))
+       (let [new-buffer (write-token-string this buffer)]
+;;          (prlabel wl new-buffer)
+         (if-not (identical? buffer new-buffer)
+                 (recur new-buffer)))))))
+
+(defn- add-to-buffer [^Writer this token]
+;  (prlabel a2b token)
+  (dosync
+   (setf :buffer (conj (getf :buffer) token))
+   (if (not (#'pprint/tokens-fit? this (getf :buffer)))
+     (write-line this))))
+
+;; printer
 
 (defn- pretty-writer [writer max-columns miser-width]
   (let [lb (struct logical-block nil nil (ref 0) (ref 0) (ref false) (ref false))
@@ -144,12 +229,21 @@
                    (#'pprint/write-white-space this)
                    (.write (getf :base) s)
                    (setf :trailing-white-space white-space))
-                 (let [oldpos (getf :pos)
-                       newpos (+ oldpos (count s0))]
+                 (let [
+                       ;; ansi-codes (vals clansi.core/ANSI-CODES)
+                       ;; str-size (count s)
+                       ;; plain-str (reduce #(s/replace %1 %2 "") s ansi-codes)
+                       ;; plain-str-size (count plain-str)
+                       ;; offset (- plain-str-size str-size)
+                       oldpos (getf :pos)
+                       newpos (+ oldpos (count s0))
+                       ;; newpos (+ oldpos (count s0) -8)
+                       ;; newpos (+ oldpos (count s0) offset)
+                       ]
                    (setf :pos newpos)
-                   ;; (.write *err* (str "COUNT" (count s)))
+                   ;; (.write *err* (str "S: " s " | OFFSET:" newpos "\n"))
                    ;; (.flush *err*)
-                   (#'pprint/add-to-buffer this (#'pprint/make-buffer-blob s white-space oldpos newpos))))))
+                   (add-to-buffer this (#'pprint/make-buffer-blob s white-space oldpos newpos))))))
 
             Integer
             (#'pprint/p-write-char this x)
