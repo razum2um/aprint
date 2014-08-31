@@ -98,6 +98,15 @@
   setf [sym new-val] 
   `(alter @~'this assoc ~sym ~new-val))
 
+(defmacro ^{:private true} binding-map [amap & body]
+  (let []
+    `(do
+       (. clojure.lang.Var (pushThreadBindings ~amap))
+       (try
+        ~@body
+        (finally
+         (. clojure.lang.Var (popThreadBindings)))))))
+
 (defstruct ^{:private true} logical-block
            :parent :section :start-col :indent
            :done-nl :intra-block-nl
@@ -179,7 +188,7 @@
   ([object writer]
      (with-pretty-writer writer
        (binding [pprint/*print-pretty* true]
-         (#'pprint/binding-map (if (or (not (= pprint/*print-base* 10)) pprint/*print-radix*) {#'pr #'pprint/pr-with-base} {}) 
+         (binding-map (if (or (not (= pprint/*print-base* 10)) pprint/*print-radix*) {#'pr #'pprint/pr-with-base} {}) 
            (write-out object)))
        (if (not (= 0 (#'pprint/get-column *out*)))
          (prn)))))
