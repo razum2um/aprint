@@ -82,3 +82,104 @@
 
 (pprint/set-pprint-dispatch color-dispatch)
 
+
+(import [clojure.lang IDeref]
+        [java.io Writer])
+
+(definterface PrettyFlush
+  (^void ppflush []))
+
+(defmacro ^{:private true} 
+  getf 
+  [sym]
+  `(~sym @@~'this))
+
+(defmacro ^{:private true} 
+  setf [sym new-val] 
+  `(alter @~'this assoc ~sym ~new-val))
+
+(defstruct ^{:private true} logical-block
+           :parent :section :start-col :indent
+           :done-nl :intra-block-nl
+           :prefix :per-line-prefix :suffix
+           :logical-block-callback)
+
+(defn- pretty-writer [writer max-columns miser-width]
+  (let [lb (struct logical-block nil nil (ref 0) (ref 0) (ref false) (ref false))
+        fields (ref {:pretty-writer true
+                     :base (#'pprint/column-writer writer max-columns)
+                     :logical-blocks lb 
+                     :sections nil
+                     :mode :writing
+                     :buffer []
+                     :buffer-block lb
+                     :buffer-level 1
+                     :miser-width miser-width
+                     :trailing-white-space nil
+                     :pos 0})]
+    (proxy [Writer IDeref PrettyFlush] []
+      (deref [] fields)
+
+      (write 
+       ([x]
+          ;;     (prlabel write x (getf :mode))
+          (condp = (class x)
+            String 
+            (let [^String s0 (#'pprint/write-initial-lines this x)
+                  ^String s (.replaceFirst s0 "\\s+$" "")
+                  white-space (.substring s0 (count s))
+                  mode (getf :mode)]
+              (dosync
+               (if (= mode :writing)
+                 (do
+                   (#'pprint/write-white-space this)
+                   (.write (getf :base) s)
+                   (setf :trailing-white-space white-space))
+                 (let [oldpos (getf :pos)
+                       newpos (+ oldpos (count s0))]
+                   (setf :pos newpos)
+                   ;; (.write *err* (str "COUNT" (count s)))
+                   ;; (.flush *err*)
+                   (#'pprint/add-to-buffer this (#'pprint/make-buffer-blob s white-space oldpos newpos))))))
+
+            Integer
+            (#'pprint/p-write-char this x)
+            Long
+            (#'pprint/p-write-char this x))))
+
+      (ppflush []
+             (if (= (getf :mode) :buffering)
+               (dosync
+                (#'pprint/write-tokens this (getf :buffer) true)
+                (setf :buffer []))
+               (#'pprint/write-white-space this)))
+
+      (flush []
+             (.ppflush this)
+             (.flush (getf :base)))
+
+      (close []
+             (.flush this)))))
+
+(defn- make-pretty-writer
+  [base-writer right-margin miser-width]
+  (pretty-writer base-writer right-margin miser-width))
+
+(defmacro ^{:private true} with-pretty-writer [base-writer & body]
+  `(let [base-writer# ~base-writer
+         new-writer# (not (#'pprint/pretty-writer? base-writer#))]
+     (binding [*out* (if new-writer#
+                      (make-pretty-writer base-writer# pprint/*print-right-margin* pprint/*print-miser-width*)
+                      base-writer#)]
+       ~@body
+       (.ppflush *out*))))
+
+(defn ppprint 
+  ([object] (ppprint object *out*)) 
+  ([object writer]
+     (with-pretty-writer writer
+       (binding [pprint/*print-pretty* true]
+         (#'pprint/binding-map (if (or (not (= pprint/*print-base* 10)) pprint/*print-radix*) {#'pr #'pprint/pr-with-base} {}) 
+           (write-out object)))
+       (if (not (= 0 (#'pprint/get-column *out*)))
+         (prn)))))
