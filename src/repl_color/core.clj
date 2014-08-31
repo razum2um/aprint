@@ -24,12 +24,18 @@
                                                              (recur (next aseq)))))))
 
 
+(defn- pprint-map [amap]
+  (try
+    (#'pprint/pprint-map (into (sorted-map) amap))
+    (catch ClassCastException e (#'pprint/pprint-map amap))))
+
 (defmulti color-dispatch class)
 
 ;; (use-method simple-dispatch clojure.lang.IPersistentSet pprint-set)
 ;; (use-method simple-dispatch clojure.lang.PersistentQueue pprint-pqueue)
 ;; (use-method simple-dispatch clojure.lang.IDeref pprint-ideref)
 
+(use-method color-dispatch clojure.lang.IPersistentMap pprint-map)
 (use-method color-dispatch clojure.lang.IPersistentVector pprint-vector)
 (use-method color-dispatch clojure.lang.Keyword (partial raw-color-pprint :green))
 (use-method color-dispatch java.lang.Long (partial raw-color-pprint :blue))
