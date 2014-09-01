@@ -148,10 +148,59 @@
       (.write (getf :base) istr))
     (#'pprint/update-nl-state lb)))
 
+(defmulti ^{:private true} write-token #(:type-tag %2))
+(defmethod write-token :start-block-t [^Writer this token]
+   (when-let [cb (getf :logical-block-callback)] (cb :start))
+   (let [lb (:logical-block token)]
+    (dosync
+     (when-let [^String prefix (:prefix lb)] 
+       (.write (getf :base) prefix))
+     (let [col (#'pprint/get-column (getf :base))]
+       (ref-set (:start-col lb) col)
+       (ref-set (:indent lb) col)))))
+
+(defmethod write-token :end-block-t [^Writer this token]
+  (when-let [cb (getf :logical-block-callback)] (cb :end))
+  (when-let [^String suffix (:suffix (:logical-block token))] 
+    (.write (getf :base) suffix)))
+
+(defmethod write-token :indent-t [^Writer this token]
+  (let [lb (:logical-block token)]
+    (ref-set (:indent lb) 
+             (+ (:offset token)
+                (condp = (:relative-to token)
+		  :block @(:start-col lb)
+		  :current (#'pprint/get-column (getf :base)))))))
+
+(defmethod write-token :buffer-blob [^Writer this token]
+  (.write (getf :base) ^String (:data token)))
+
+(defmethod write-token :nl-t [^Writer this token]
+;  (prlabel wt @(:done-nl (:logical-block token)))
+;  (prlabel wt (:type token) (= (:type token) :mandatory))
+  (if (or (= (:type token) :mandatory)
+           (and (not (= (:type token) :fill))
+                @(:done-nl (:logical-block token))))
+    (emit-nl this token)
+    (if-let [^String tws (getf :trailing-white-space)]
+      (.write (getf :base) tws)))
+  (dosync (setf :trailing-white-space nil)))
+(defn- write-tokens [^Writer this tokens force-trailing-whitespace]
+  (doseq [token tokens]
+    (if-not (= (:type-tag token) :nl-t)
+      (if-let [^String tws (getf :trailing-white-space)]
+	(.write (getf :base) tws)))
+    (write-token this token)
+    (setf :trailing-white-space (:trailing-white-space token)))
+  (let [^String tws (getf :trailing-white-space)] 
+    (when (and force-trailing-whitespace tws)
+      (.write (getf :base) tws)
+      (setf :trailing-white-space nil))))
+
 (defn- write-token-string [this tokens]
   (let [[a b] (#'pprint/split-at-newline tokens)]
    ;; (prlabel wts (toks a) (toks b))
-    (if a (#'pprint/write-tokens this a false))
+    (if a (write-tokens this a false))
     (if b
       (let [[section remainder] (#'pprint/get-section b)
             newl (first b)]
@@ -170,7 +219,7 @@
                          (if (= rem2 section)
                            (do ; If that didn't produce any output, it has no nls
                                         ; so we'll force it
-                             (#'pprint/write-tokens this section false)
+                             (write-tokens this section false)
                              remainder)
                            (into [] (concat rem2 remainder))))
                        result)
@@ -253,7 +302,7 @@
       (ppflush []
              (if (= (getf :mode) :buffering)
                (dosync
-                (#'pprint/write-tokens this (getf :buffer) true)
+                (write-tokens this (getf :buffer) true)
                 (setf :buffer []))
                (#'pprint/write-white-space this)))
 
