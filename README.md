@@ -1,16 +1,39 @@
-# repl-color
+# aprint: awesome print
 
 ![screenshot](https://raw.github.com/razum2um/repl-color/master/doc/screenshot.png)
 
 ## Usage
 
-    (require 'repl-color.core)
-    ;; and just use clojure.pprint/pprint
+    (use 'aprint.core)
+    (aprint object)
 
-If you want to revert default behaviour
+    ;; or just like (pp)
+    (ap)
 
-    (use 'clojure.pprint)
-    (set-pprint-dispatch simple-dispatch)
+## Why not just clojure.pprint/pprint?
+
+Look, I have some data:
+
+![data](https://raw.github.com/razum2um/repl-color/master/doc/raw.png)
+
+With `pprint` it takes 3+ awful screens:
+
+![pprint1](https://raw.github.com/razum2um/repl-color/master/doc/pprint1.png)
+
+![pprint2](https://raw.github.com/razum2um/repl-color/master/doc/pprint2.png)
+
+![pprint3](https://raw.github.com/razum2um/repl-color/master/doc/pprint3.png)
+
+![pprint4](https://raw.github.com/razum2um/repl-color/master/doc/pprint4.png)
+
+With `aprint`:
+
+![aprint](https://raw.github.com/razum2um/repl-color/master/doc/aprint.png)
+
+## Acknoledgements
+
+- @hlship for awesome [jline2](https://github.com/jline/jline2)
+- @jdillon for thinking in similar way: [pretty](https://github.com/AvisoNovate/pretty)
 
 ## License
 
