@@ -9,7 +9,7 @@
 (defn aprint
   ([object] (aprint object *out*))
   ([object writer]
-   (binding [ pprint/*print-right-margin* (tty-width)]
+   (binding [pprint/*print-right-margin* (tty-width)]
      (with-pprint-dispatch color-dispatch
        (with-awesome-writer writer
          (binding [pprint/*print-pretty* true

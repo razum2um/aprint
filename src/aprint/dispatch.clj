@@ -1,11 +1,10 @@
 (ns aprint.dispatch
   (:require [clojure.pprint :as pprint :refer [pprint-logical-block write-out pprint-newline print-length-loop]]
-            [clansi.core :as clansi]
             [aprint.utils :refer :all])
   (:import [java.io Writer]))
 
 (defn- pprint-vector [avec]
-  (pprint-logical-block :prefix (clansi/style "[" :magenta) :suffix (clansi/style "]" :magenta)
+  (pprint-logical-block :prefix (style "[" :magenta) :suffix (style "]" :magenta)
                                (print-length-loop [aseq (seq avec)]
                                                          (when aseq
                                                            (write-out (first aseq))
@@ -19,12 +18,12 @@
 
 (defn- pprint-map [amap]
   (let [color (first (shuffle [:red :blue :cyan]))]
-    (pprint-logical-block :prefix "{" :suffix "}"
+    (pprint-logical-block :prefix (style "{" color) :suffix (style "}" color)
                           (print-length-loop [aseq (seq amap)]
                                              (when aseq
                                                (let [k (ffirst aseq)]
                                                  (if (string? k)
-                                                   (write-out (clansi/style (without-ansi k) :green))
+                                                   (write-out (style (without-ansi k) :green))
                                                    (write-out k)))
                                                (.write ^java.io.Writer *out* " ")
                                                (write-out (fnext (first aseq)))

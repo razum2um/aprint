@@ -48,10 +48,23 @@
 
 (defmacro wrapns [var wrapfn] `(alter-var-route #'~var ~wrapfn))
 
+(defn- terminal []
+  (.getTerminal (ConsoleReader.)))
+
 (defn- fn-tty-width []
-  (-> (ConsoleReader.) (.getTerminal) (.getWidth)))
+  (.getWidth (terminal)))
 
 (def tty-width (memoize fn-tty-width))
+
+(defn- fn-ansi-supported? []
+  (.isAnsiSupported (terminal)))
+
+(def ansi-supported? (memoize fn-ansi-supported?))
+
+(defn style [s color]
+  (if (ansi-supported?)
+    (clansi/style s color)
+    s))
 
 ;; "\e[\d+m"
 (def ansi-code-pattern

@@ -1,6 +1,5 @@
 (ns aprint.writer
   (:require [clojure.pprint :as pprint]
-            [clansi.core :as clansi]
             [clojure.string :as s]
             [aprint.utils :refer :all])
   (:import [clojure.lang IDeref]
