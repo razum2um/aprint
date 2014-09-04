@@ -4,6 +4,8 @@
 
 ## Usage
 
+[![Clojars Project](http://clojars.org/aprint/latest-version.svg)](http://clojars.org/aprint)
+
     (use 'aprint.core)
     (aprint object)
 
