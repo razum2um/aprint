@@ -68,7 +68,6 @@
 
 (defn need-clear-screen? [obj]
   (let [obj-size (count (pr-str obj))
-        ratio (/ obj-size (tty-area))
-        _ (println "!!! RATIO: " ratio)]
+        ratio (/ obj-size (tty-area))]
     (> ratio 0.3)))
 
