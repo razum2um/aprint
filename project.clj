@@ -1,4 +1,4 @@
-(defproject aprint "0.1.0"
+(defproject aprint "0.1.1-SNAPSHOT"
   :description "Awesome print: like clojure.pprint, but awesome"
   :url "https://github.com/razum2um/aprint"
   :license {:name "Eclipse Public License"
