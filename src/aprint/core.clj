@@ -15,8 +15,7 @@
    (binding [pprint/*print-right-margin* (tty-width)]
      (with-pprint-dispatch color-dispatch
        (with-awesome-writer writer
-         (binding [pprint/*print-pretty* true
-                   ]
+         (binding [pprint/*print-pretty* true]
            (binding-map (if (or (not (= pprint/*print-base* 10)) pprint/*print-radix*) {#'pr #'pprint/pr-with-base} {}) 
                         (write-out object)))
          (if (not (= 0 (#'pprint/get-column *out*)))
