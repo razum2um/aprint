@@ -19,4 +19,6 @@
          (if (not (= 0 (#'pprint/get-column *out*)))
            (prn)))))))
 
+(defmacro ap []
+  `(aprint *1))
 

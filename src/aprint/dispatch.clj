@@ -14,10 +14,8 @@
                                                              (recur (next aseq)))))))
 
 
-(use 'alex-and-georges.debug-repl)
-
 (defn- pprint-map [amap]
-  (let [color (first (shuffle [:red :blue :cyan]))]
+  (let [color (first (shuffle random-brackets-style))]
     (pprint-logical-block :prefix (style "{" color) :suffix (style "}" color)
                           (print-length-loop [aseq (seq amap)]
                                              (when aseq
@@ -42,14 +40,26 @@
     (pprint-map (into (sorted-map) amap))
     (catch ClassCastException e (pprint-map amap))))
 
-(defmulti color-dispatch class)
+(defn- pprint-simple-list [alis]
+  (let [color (first (shuffle random-brackets-style))]
+    (pprint-logical-block :prefix (style "(" color) :suffix (style ")" color)
+                          (print-length-loop [alis (seq alis)]
+                                             (when alis
+                                               (write-out (first alis))
+                                               (when (next alis)
+                                                 (.write ^java.io.Writer *out* " ")
+                                                 (pprint-newline :linear)
+                                                 (recur (next alis))))))))
 
-;; (use-method simple-dispatch clojure.lang.IPersistentSet pprint-set)
-;; (use-method simple-dispatch clojure.lang.PersistentQueue pprint-pqueue)
-;; (use-method simple-dispatch clojure.lang.IDeref pprint-ideref)
+(defn- pprint-list [alis]
+  (if-not (#'pprint/pprint-reader-macro alis)
+    (pprint-simple-list alis)))
+
+(defmulti color-dispatch class)
 
 (use-method color-dispatch clojure.lang.IPersistentMap pprint-map-sorted)
 (use-method color-dispatch clojure.lang.IPersistentVector pprint-vector)
+(use-method color-dispatch clojure.lang.ISeq pprint-list)
 (use-method color-dispatch clojure.lang.Keyword (partial raw-color-pprint :green))
 (use-method color-dispatch java.lang.Long (partial raw-color-pprint :blue))
 (use-method color-dispatch java.lang.Integer (partial raw-color-pprint :blue))

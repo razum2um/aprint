@@ -6,6 +6,10 @@
   (:import [java.io Writer]
            [jline.console ConsoleReader]))
 
+(def random-brackets-style [:red :blue :cyan])
+
+(declare style)
+
 (defn- escaped-string [^String s]
   (apply str (map #(or (char-escape-string %) %) (char-array s))))
 
@@ -17,6 +21,33 @@
         (.append w \"))
     (.write w s))
   nil)
+
+;; (defmethod print-method clojure.lang.ISeq [o, ^Writer w]
+;;   (let [color (first (shuffle random-brackets-style))]
+;;     (#'clojure.core/print-meta o w)
+;;     (#'clojure.core/print-sequential (style "(" color) #'clojure.core/pr-on " " (style ")" color) o w)))
+;;
+;; (defmethod print-method java.util.List [c, ^Writer w]
+;;   (if *print-readably*
+;;     (let [color (first (shuffle random-brackets-style))]
+;;       (#'clojure.core/print-meta c w)
+;;       (#'clojure.core/print-sequential (style "(" color) #'clojure.core/pr-on " " (style ")" color) c w))
+;;     (#'clojure.core/print-object 1 w)
+;;     ))
+
+;; (defmethod print-method java.util.RandomAccess [v, ^Writer w]
+;;   (if *print-readably*
+;;     (do
+;;       (print-meta v w)
+;;       (print-sequential "[" pr-on " " "]" v w))
+;;     (print-object v w)))
+;;
+;; (defmethod print-method java.util.Set [s, ^Writer w]
+;;   (if *print-readably*
+;;     (do
+;;       (print-meta s w)
+;;       (print-sequential "#{" pr-on " " "}" (seq s) w))
+;;     (print-object s w)))
 
 (def use-method #'pprint/use-method)
 
