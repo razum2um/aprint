@@ -14,9 +14,12 @@
                                                              (recur (next aseq)))))))
 
 
-(defn- pprint-map [amap]
-  (let [color (first (shuffle random-brackets-style))]
-    (pprint-logical-block :prefix (style "{" color) :suffix (style "}" color)
+;; colorized brackets - sign that map has been sorted
+(defn- pprint-map [amap colorize-brackets?]
+  (let [color (first (shuffle random-brackets-style))
+        prefix (if colorize-brackets? (style "{" color) "{")
+        suffix (if colorize-brackets? (style "}" color) "}")]
+    (pprint-logical-block :prefix (style prefix color) :suffix (style suffix color)
                           (print-length-loop [aseq (seq amap)]
                                              (when aseq
                                                (let [k (ffirst aseq)]
@@ -37,8 +40,8 @@
 
 (defn- pprint-map-sorted [amap]
   (try
-    (pprint-map (into (sorted-map) amap))
-    (catch ClassCastException e (pprint-map amap))))
+    (pprint-map (into (sorted-map) amap) true)
+    (catch ClassCastException e (pprint-map amap false))))
 
 (defn- pprint-simple-list [alis]
   (let [color (first (shuffle random-brackets-style))]
