@@ -1,7 +1,8 @@
 (ns aprint.writer
   (:require [clojure.pprint :as pprint]
             [clansi.core :as clansi]
-            [clojure.string :as s])
+            [clojure.string :as s]
+            [aprint.utils :refer :all])
   (:import [clojure.lang IDeref]
            [java.io Writer]))
 
@@ -20,7 +21,7 @@
 (defn- get-field [^Writer this sym]
   (sym @@this))
 
-(defn- set-field [^Writer this sym new-val] 
+(defn- set-field [^Writer this sym new-val]
   (alter @this assoc sym new-val))
 
 (defstruct ^{:private true} logical-block
@@ -28,10 +29,6 @@
            :done-nl :intra-block-nl
            :prefix :per-line-prefix :suffix
            :logical-block-callback)
-
-;; "\e[\d+m"
-(def ansi-code-pattern
-  (re-pattern (reduce str (map char [27 92 91 92 100 43 109]))))
 
 ;; printer
 
@@ -54,9 +51,7 @@
                String 
                (let [^String s x
                      nl (.lastIndexOf s (int \newline))
-                     plain-str (s/replace s ansi-code-pattern "")
-                     ;; _ (prerr "!!! wow: nl:" nl)
-                     ]
+                     plain-str (without-ansi s)]
                  (dosync (if (neg? nl)
                            (set-field this :cur (+ (get-field this :cur) (count plain-str)))
                            (do
@@ -89,7 +84,6 @@
 
       (write 
        ([x]
-              ;; (prlabel write x (getf :mode))
           (condp = (class x)
             String 
             (let [^String s0 (#'pprint/write-initial-lines this x)
@@ -102,19 +96,13 @@
                    (#'pprint/write-white-space this)
                    (.write (getf :base) s)
                    (setf :trailing-white-space white-space))
-                 (let [
-                       ;; ansi-codes (vals clansi.core/ANSI-CODES)
-                       str-size (count s)
-                       ;; plain-str (reduce #(s/replace %1 %2 "") s ansi-codes)
-                       plain-str (s/replace s ansi-code-pattern "")
+                 (let [str-size (count s)
+                       plain-str (without-ansi s)
                        plain-str-size (count plain-str)
                        offset (- plain-str-size str-size)
                        oldpos (getf :pos)
                        newpos (+ oldpos (count s0))
-                       ;; newpos (+ oldpos (count s0) -8)
-                       newpos (+ oldpos (count s0) offset)
-                       ;; _ (prerr "!!! plain: " plain-str-size "bytes: " (into [] (.getBytes plain-str)))
-                       ]
+                       newpos (+ oldpos (count s0) offset)]
                    (setf :pos newpos)
                    (#'pprint/add-to-buffer this (#'pprint/make-buffer-blob s white-space oldpos newpos))))))
 

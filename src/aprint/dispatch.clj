@@ -15,19 +15,28 @@
                                                              (recur (next aseq)))))))
 
 
+(use 'alex-and-georges.debug-repl)
+
 (defn- pprint-map [amap]
   (let [color (first (shuffle [:red :blue :cyan]))]
-  (pprint-logical-block :prefix "{" :suffix "}"
-    (print-length-loop [aseq (seq amap)]
-      (when aseq
-            (write-out (ffirst aseq))
-            (.write ^java.io.Writer *out* " ")
-            (write-out (fnext (first aseq)))
-        (when (next aseq)
-          (.write ^java.io.Writer *out* ", ")
-          (when (and (complex? (next aseq)) (complex? (fnext aseq)) (complex? (second (fnext aseq))))
-            (pprint-newline :linear))
-          (recur (next aseq))))))))
+    (pprint-logical-block :prefix "{" :suffix "}"
+                          (print-length-loop [aseq (seq amap)]
+                                             (when aseq
+                                               (let [k (ffirst aseq)]
+                                                 (if (string? k)
+                                                   (write-out (clansi/style (without-ansi k) :green))
+                                                   (write-out k)))
+                                               (.write ^java.io.Writer *out* " ")
+                                               (write-out (fnext (first aseq)))
+                                               (when (next aseq)
+                                                 (.write ^java.io.Writer *out* ", ")
+                                                 (if (and (complex? (next aseq))
+                                                          (complex? (fnext aseq))
+                                                          (complex? (second (fnext aseq))))
+                                                   (pprint-newline :linear)
+                                                   (pprint-newline :fill)
+                                                   )
+                                                 (recur (next aseq))))))))
 
 (defn- pprint-map-sorted [amap]
   (try
@@ -44,7 +53,9 @@
 (use-method color-dispatch clojure.lang.IPersistentVector pprint-vector)
 (use-method color-dispatch clojure.lang.Keyword (partial raw-color-pprint :green))
 (use-method color-dispatch java.lang.Long (partial raw-color-pprint :blue))
+(use-method color-dispatch java.lang.Integer (partial raw-color-pprint :blue))
 (use-method color-dispatch java.lang.Double (partial raw-color-pprint :blue))
+(use-method color-dispatch java.lang.Boolean (partial raw-color-pprint :cyan))
 (use-method color-dispatch java.lang.String (partial color-pprint :yellow))
 (use-method color-dispatch nil pr)
 (use-method color-dispatch :default pprint/simple-dispatch)
