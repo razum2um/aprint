@@ -30,6 +30,8 @@ With `aprint`:
 
 ![aprint](https://raw.github.com/razum2um/repl-color/master/doc/aprint.png)
 
+Awesome, yeah?
+
 ## Acknoledgements
 
 - @hlship for awesome [jline2](https://github.com/jline/jline2)
