@@ -41,6 +41,8 @@
 (defn- pprint-map-sorted [amap]
   (try
     (pprint-map (into (sorted-map) amap) true)
+    ;; workaround http://dev.clojure.org/jira/browse/CLJ-1466
+    (catch AbstractMethodError e (pprint-map (into (sorted-map) (seq amap)) true))
     (catch ClassCastException e (pprint-map amap false))))
 
 (defn- pprint-simple-list [alis]
@@ -71,4 +73,3 @@
 (use-method color-dispatch java.lang.String (partial color-pprint :yellow))
 (use-method color-dispatch nil pr)
 (use-method color-dispatch :default pprint/simple-dispatch)
-
