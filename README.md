@@ -34,6 +34,12 @@ With `aprint`:
 
 Awesome, yeah?
 
+## Notes
+
+If you'd like to get same layout without color codes require clansi and do this:
+
+    (clansi.core/without-ansi (aprint issues))
+
 ## Acknoledgements
 
 - @hlship for awesome [jline2](https://github.com/jline/jline2)
