@@ -1,5 +1,6 @@
 (ns aprint.core
   (:require [clojure.pprint :as pprint :refer [write-out with-pprint-dispatch]]
+            [clansi.core :as clansi]
             [aprint.utils :refer :all]
             [aprint.tty :refer [tty-width clear-screen]]
             [aprint.dispatch :refer [color-dispatch]]
@@ -23,4 +24,13 @@
 
 (defmacro ap []
   `(aprint *1))
+
+(defn nprint
+  ([object] (nprint object *out*))
+  ([object writer]
+   (clansi/without-ansi
+     (aprint object writer))))
+
+(defmacro np []
+  `(nprint *1))
 
