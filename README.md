@@ -36,9 +36,16 @@ Awesome, yeah?
 
 ## Notes
 
-If you'd like to get same layout without color codes require clansi and do this:
+If you'd like to get same layout without color codes:
 
-    (clansi.core/without-ansi (aprint issues))
+    ;; n stands for "normalized" print
+    (nprint issues)
+
+## Hint
+
+Add this to your `~/.lein/profiles.clj`
+
+    {:user {:injections [(use 'aprint.core)]}}
 
 ## Acknoledgements
 
