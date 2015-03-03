@@ -49,8 +49,8 @@ Add this to your `~/.lein/profiles.clj`
 
 ## Acknoledgements
 
-- @hlship for awesome [jline2](https://github.com/jline/jline2)
-- @jdillon for thinking in similar way: [pretty](https://github.com/AvisoNovate/pretty)
+- @jdillon for awesome [jline2](https://github.com/jline/jline2)
+- @hlship for thinking in similar way: [pretty](https://github.com/AvisoNovate/pretty)
 
 ## License
 
