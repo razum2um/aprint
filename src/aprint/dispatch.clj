@@ -73,7 +73,9 @@
       (pprint-map-sorted r))
     (pprint-map-sorted r)))
 
-(defmulti color-dispatch class)
+(defmulti color-dispatch (fn [x]
+                           (let [t (get (meta x) :type)]
+                             (if (keyword? t) t (class x)))))
 
 (use-method color-dispatch clojure.lang.IRecord pprint-record)
 (use-method color-dispatch clojure.lang.IPersistentMap pprint-map-sorted)
